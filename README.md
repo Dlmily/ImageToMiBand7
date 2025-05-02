@@ -37,6 +37,6 @@ python 4.py (复制的图像文件名)
 2.[番茄小说下载器精简版](https://github.com/Dlmily/Tomato-Novel-Downloader-Lite)
 
 # 其他
-~`致谢`：https://bandbbs.cn/members/114920
+~`致谢人员`：https://bandbbs.cn/members/114920
 
 ~[参考代码](https://github.com/p149u3/MiBand7Tools)
