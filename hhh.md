@@ -1,0 +1,4 @@
+- `batch_device_register_xml.py` --- 批量生成设备注册信息的脚本
+- `IdleFQ.java` --- fqnovel-unidbg 模拟执行相关代码
+- `FQEncryptServiceTest.java` --- fqnovel-unidbg 签名加密相关测试代码
+- `/lib和/apk/和/other` --- 存放 fqnovel-unidbg 模拟执行所需的文件
