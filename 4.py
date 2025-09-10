@@ -9,6 +9,8 @@ class WorkingTGAConverter:
         self.image_width = 0
         self.original_size = (0, 0)
         self.max_size = 100
+        self.num_colors = 0 # 0表示不进行颜色压缩
+        self.output_path = None
 
     def pack(self, input_file):
         try:
@@ -23,11 +25,29 @@ class WorkingTGAConverter:
             
             output_data = bytearray()
             output_data.extend(header)
+            if self.num_colors > 0:
+                # 获取调色板数据并添加到输出
+                palette = img.getpalette()
+                # PIL的调色板是RGB，需要转换为RGBA并存储为BGRA
+                # 每个颜色项是3字节RGB，需要将其转换为4字节BGRA
+                bgra_palette = bytearray()
+                for i in range(0, len(palette), 3):
+                    b = palette[i+2]
+                    g = palette[i+1]
+                    r = palette[i]
+                    a = 0xFF # Alpha通道设置为不透明
+                    bgra_palette.extend([b, g, r, a])
+                output_data.extend(bgra_palette)
             output_data.extend(pixels)
+
+
             output_data.extend(footer)
             
-            output_path = os.path.splitext(input_file)[0] + '_watchface.png'
-            with open(output_path, 'wb') as f:
+            if self.output_path:
+                output_path = self.output_path
+            else:
+                output_path = os.path.splitext(input_file)[0] + '_watchface.png'
+            with open(output_path, 'wb') as f: 
                 f.write(output_data)
             
             # 调用修复函数
@@ -68,21 +88,40 @@ class WorkingTGAConverter:
             new_height = int(height * ratio)
             img = img.resize((new_width, new_height))
         
+        if self.num_colors > 0:
+            img = img.quantize(colors=self.num_colors, method=Image.Quantize.FASTOCTREE) # 更改为FASTOCTREE
         return img
 
     def _get_pixels(self, img):
         pixels = bytearray()
-        for r, g, b, a in img.getdata():
-            pixels.extend([b, g, r, a])
+        if self.num_colors > 0:
+            # 调色板模式
+            for index in img.getdata():
+                pixels.append(index)
+        else:
+            # RGBA模式
+            for r, g, b, a in img.getdata():
+                pixels.extend([b, g, r, a])
         return pixels
 
     def _create_header(self, width, height):
         header = bytearray(18)
-        header[2] = 2
+        if self.num_colors > 0:
+            # Indexed color image
+            header[1] = 1  # Color map type: 1 (color map included)
+            header[2] = 1  # Image type: 1 (uncompressed, color-mapped image)
+            header[3:5] = struct.pack('<H', 0)  # Color map origin
+            header[5:7] = struct.pack('<H', self.num_colors)  # Color map length
+            header[7] = 32  # Color map entry depth: 32 (RGBA)
+            header[16] = 8  # Pixel depth: 8 bits per pixel (for indexed color)
+        else:
+            # RGBA image
+            header[2] = 2  # Image type: 2 (uncompressed, RGB image)
+            header[16] = 32  # Pixel depth: 32 bits per pixel (RGBA)
+        
         header[12:14] = struct.pack('<H', width)
         header[14:16] = struct.pack('<H', height)
-        header[16] = 32
-        header[17] = 0x20
+        header[17] = 0x20  # Image descriptor: top-left origin
         return header
 
     def _create_footer(self):
@@ -105,9 +144,11 @@ class WorkingTGAConverter:
             new_description[6:8] = struct.pack('<H', self.original_size[0])
             new_description[8:10] = struct.pack('<H', self.original_size[1])
 
-            data[0] = 46
-            data[5:7] = struct.pack('<H', 256)
-            data[7] = 32
+            # 根据是否使用颜色压缩调整TGA头部的某些字段
+            if self.num_colors > 0:
+                data[5:7] = struct.pack("<H", self.num_colors)  # Color Map Length
+            else:
+                data[5:7] = struct.pack("<H", 256) # 原始值
 
             new_data = bytearray()
             new_data.extend(data[:18])
@@ -125,13 +166,18 @@ class WorkingTGAConverter:
 def main():
     parser = argparse.ArgumentParser(description='小米手环7表盘转换工具')
     parser.add_argument('input', help='输入PNG文件路径或目录路径')
+    parser.add_argument('-o', '--output', help='输出文件路径（仅适用于单文件转换）')
     parser.add_argument('-b', '--batch', action='store_true', help='批量转换目录中的所有图片')
     parser.add_argument('-s', '--max-size', type=int, default=100, 
                        help='自定义最大尺寸限制（默认100）')
+    parser.add_argument('-c', '--colors', type=int, default=0, 
+                       help='颜色压缩数量（0表示不压缩，例如256）')
     args = parser.parse_args()
     
     converter = WorkingTGAConverter()
     converter.max_size = args.max_size
+    converter.num_colors = args.colors
+    converter.output_path = args.output
     
     if args.batch:
         converter.batch_pack(args.input)
