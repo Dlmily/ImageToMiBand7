@@ -60,9 +60,14 @@ python 4.py {目录} -b -s 200 -c 128
 
 ---
 
-# 赞助/了解新产品
-1. [DL报刊论坛](https://afdian.com/a/dlbaokanluntanos)
+# 了解新产品&赞助
+
+1. [DL报刊论坛](https://dlbkltos.s7123.xyz/)
 
 2. [番茄小说下载器精简版](https://github.com/Dlmily/Tomato-Novel-Downloader-Lite)
 
 3. [支持音效的命令行网易云播放器](https://github.com/Dlmily/music-fx-player)
+
+4. [炒股模拟器](https://github.com/Dlmily/finscope)
+
+5. [赞助](https://afdian.com/a/dlbaokanluntanos)
